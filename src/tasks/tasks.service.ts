@@ -13,4 +13,17 @@ export class TasksService {
     findOneTaks(id: string) {
         return {id: 2, task: 'comprar pao'}
     }
+
+    create(body: any) {
+        return body
+    }
+
+    update(id: string, body: any) {
+        let retorno = { id, body }
+        return retorno
+    }
+
+    delete(id: string) {
+        return 'Deletar a tarefa' + id
+    }
 }

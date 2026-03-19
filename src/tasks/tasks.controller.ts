@@ -2,7 +2,11 @@ import {
     Controller, 
     Get, 
     Param, 
-    Query
+    Post,
+    Body,
+    Query,
+    Put,
+    Delete
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 
@@ -15,13 +19,28 @@ export class TasksController {
         return this.taskService.listAllTasks()
     }
 
-    @Get("/busca")
+    @Get('/busca')
     findManyTasks(@Query() queryParam: any) {
         return this.taskService.listAllTasks()
     }
 
-    @Get(":id")
+    @Get(':id')
     findSingleTasks(@Param("id") id: string) {
         return this.taskService.findOneTaks(id)
+    }
+
+    @Post()
+    createTask(@Body() body: any) {
+        return this.taskService.create(body)
+    }
+
+    @Put(':id') //Patch
+    updateTask(@Param('id') id:string, @Body() body: any) {
+        return this.taskService.update(id, body)
+    }
+
+    @Delete(':id')
+    deleteTask(@Param('id') id: string) {
+        return this.taskService.delete(id)
     }
 }
