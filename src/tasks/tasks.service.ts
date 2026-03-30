@@ -1,117 +1,96 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { 
+		HttpException, 
+		HttpStatus, 
+		Injectable, 
+		NotFoundException
+	} from '@nestjs/common';
 import { Task } from './entities/task.entitie';
-import { UpdateTaskDto } from 'src/dto/update.task.dto';
-import { CreateTaskDto } from 'src/dto/create.task.dto';
+import { UpdateTaskDto } from 'src/tasks/dto/update.task.dto';
+import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
+import { DatabaseModule } from 'src/database/database.module';
+import { DatabaseService } from 'src/database/database.service';
+import { find } from 'rxjs';
 
 @Injectable()
 export class TasksService {
+	constructor(private readonly databaseService: DatabaseService) {}
 
-private tasks: Task[] = [
-	{
-		id: 1,
-		name: "Estudar introdução ao TDD",
-		description: "Estudar as videos aulas de introdução a metodologia TDD - muito importante para a carreira",
-		completed: false
-	},
-	{
-		id: 2,
-		name: "Criar primeiro endpoint REST",
-		description: "Implementar um endpoint GET simples para listar tarefas",
-		completed: false
-	},
-	{
-		id: 3,
-		name: "Implementar padrão Controller/Service",
-		description: "Separar responsabilidades entre controller e service seguindo boas práticas",
-		completed: false
-	},
-	{
-		id: 4,
-		name: "Estudar Clean Architecture",
-		description: "Compreender as camadas e dependências da arquitetura limpa",
-		completed: false
-	},
-	{
-		id: 5,
-		name: "Criar validações de entrada",
-		description: "Validar dados recebidos no body das requisições",
-		completed: false
-	},
-	{
-		id: 6,
-		name: "Implementar criação de tarefas",
-		description: "Criar endpoint POST para adicionar novas tarefas",
-		completed: false
-	},
-	{
-		id: 7,
-		name: "Atualizar status de tarefa",
-		description: "Criar endpoint PUT para marcar tarefas como concluídas",
-		completed: false
-	},
-	{
-		id: 8,
-		name: "Remover tarefa da lista",
-		description: "Criar endpoint DELETE para remover tarefas por ID",
-		completed: false
-	},
-	{
-		id: 9,
-		name: "Adicionar logs na aplicação",
-		description: "Implementar logs básicos para rastrear requisições",
-		completed: false
-	},
-	{
-		id: 10,
-		name: "Testar API com Insomnia/Postman",
-		description: "Validar todos os endpoints utilizando ferramentas de teste de API",
-		completed: false
-	}
-];
-
-    listAllTasks() {
-        return this.tasks;
+    async listAllTasks() {
+        const allTasks = this.databaseService.task.findMany();
+		return allTasks
     }
 
 
-    findOneTaks(id: string) {
-        const task = this.tasks.find(task => task.id === Number(id));
-        if (task) {
-            return task;
-        }
-        throw new HttpException('Tarefa não encontrada', 404);
+    async findOneTaks(id: number) {
+        try {
+			const task = await this.databaseService.task.findUnique({
+				where: { id }
+			});
+			return task;
+		} catch (err) {
+			throw new HttpException(
+				"erro ao buscar tarefa",
+				HttpStatus.INTERNAL_SERVER_ERROR
+			) 
+		}
     }
 
-    create(createTaskDto: CreateTaskDto) {
-        const newID = this.tasks.length + 1;
-        const newTask: Task = {
-            id: newID,
-            completed: false,
-            ...createTaskDto
-        }
-        this.tasks.push(newTask);
-        return newTask;
+    async create(createTaskDto: CreateTaskDto) {
+        try {
+			const newTask = await this.databaseService.task.create({
+				data: {
+					title: createTaskDto.name,
+					description: createTaskDto.description
+				}
+			});
+			return newTask;
+		} catch (err) {
+			throw new HttpException(
+				"erro ao criar tarefa",
+				HttpStatus.INTERNAL_SERVER_ERROR
+			)
+		}
     }
 
-    update(id: string, updateTaskDto: UpdateTaskDto) {
-        const taskIndex = this.tasks.findIndex(task => task.id === Number(id));
-        if (taskIndex === -1) {
-            throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND);
-        }
-        const taskItem = this.tasks[taskIndex];
-        this.tasks[taskIndex] = {
-            ...taskItem,
-            ...updateTaskDto
-        };
-        return this.tasks[taskIndex];
+    async update(id: number, updateTaskDto: UpdateTaskDto) {
+		try {
+			const findTask = await this.databaseService.task.findUnique({
+				where: { id }
+			});
+			if(!findTask) {
+				throw new NotFoundException('Tarefa não encontrada')
+			}
+
+			const updateTask = await this.databaseService.task.update({
+				where: { id },
+				data: updateTaskDto
+			});
+			return updateTask;
+		} catch (err) {
+			throw new HttpException(
+				"erro ao atualizar tarefa",
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
     }
 
-    delete(id: string) {
-      const taskIndex = this.tasks.findIndex(task => task.id === Number(id));
-	  if ( taskIndex === -1) {
-		throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND);
-	  }
-	  this.tasks.splice(taskIndex, 1);
-	  return 'Tarefa deletada com sucesso'
+    async delete(id: number) {
+      try {
+			const findTask = await this.databaseService.task.findUnique({
+				where: { id }
+			});
+			if(!findTask) {
+				throw new NotFoundException('Tarefa não encontrada')
+			}
+			await this.databaseService.task.delete({
+				where: { id }
+			});
+			return { message: 'Tarefa deletada com sucesso'};
+		} catch (err) {
+			throw new HttpException(
+				'erro ao deletar tarefa',
+				HttpStatus.INTERNAL_SERVER_ERROR
+			)
+		}
     }
 }

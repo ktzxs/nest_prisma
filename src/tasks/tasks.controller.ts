@@ -6,11 +6,12 @@ import {
     Body,
     Query,
     Put,
-    Delete
+    Delete,
+    ParseIntPipe
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto } from 'src/dto/create.task.dto';
-import { UpdateTaskDto } from 'src/dto/update.task.dto'
+import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
+import { UpdateTaskDto } from 'src/tasks/dto/update.task.dto'
 
 @Controller('tasks')
 export class TasksController {
@@ -27,7 +28,7 @@ export class TasksController {
     }
 
     @Get(':id')
-    findSingleTasks(@Param("id") id: string) {
+    findSingleTasks(@Param('id', ParseIntPipe ) id: number) {
         return this.taskService.findOneTaks(id)
     }
 
@@ -37,12 +38,12 @@ export class TasksController {
     }
 
     @Put(':id') //Patch
-    updateTask(@Param('id') id:string, @Body() updateTask: UpdateTaskDto) {
+    updateTask(@Param('id', ParseIntPipe) id: number, @Body() updateTask: UpdateTaskDto) {
         return this.taskService.update(id, updateTask)
     }
 
     @Delete(':id')
-    deleteTask(@Param('id') id: string) {
+    deleteTask(@Param('id') id: number) {
         return this.taskService.delete(id)
     }
 }
