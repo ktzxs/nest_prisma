@@ -4,22 +4,34 @@ import {
 		Injectable, 
 		NotFoundException
 	} from '@nestjs/common';
-import { Task } from './entities/task.entitie';
 import { UpdateTaskDto } from 'src/tasks/dto/update.task.dto';
 import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
-import { DatabaseModule } from 'src/database/database.module';
 import { DatabaseService } from 'src/database/database.service';
-import { find } from 'rxjs';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { resolvePaginationDto } from 'src/common/pagination/resolvePagination';
 
 @Injectable()
 export class TasksService {
 	constructor(private readonly databaseService: DatabaseService) {}
 
-    async listAllTasks() {
-        const allTasks = this.databaseService.task.findMany();
-		return allTasks
+    async listAllTasks(paginationDto: PaginationDto) {
+		const { limit , offset } = resolvePaginationDto(paginationDto)
+        try {
+			const allTasks = await this.databaseService.task.findMany({
+				take: limit,
+				skip: offset,
+				orderBy: {
+					createdAt: 'desc'
+				}
+			});
+			return allTasks;
+		} catch (err) {
+			throw new HttpException(
+				"Erro ao listar tarefas",
+				HttpStatus.INTERNAL_SERVER_ERROR
+			);
+		}
     }
-
 
     async findOneTaks(id: number) {
         try {
@@ -39,7 +51,7 @@ export class TasksService {
         try {
 			const newTask = await this.databaseService.task.create({
 				data: {
-					title: createTaskDto.name,
+					name: createTaskDto.name,
 					description: createTaskDto.description
 				}
 			});

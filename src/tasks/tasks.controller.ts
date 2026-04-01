@@ -7,24 +7,32 @@ import {
     Query,
     Put,
     Delete,
-    ParseIntPipe
+    ParseIntPipe,
+    Logger
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
 import { UpdateTaskDto } from 'src/tasks/dto/update.task.dto'
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { UseInterceptors } from '@nestjs/common';
+import { LoggerInterceptor } from 'src/common/interceptors/logger.interceptor';
+import { AddHeaderInterceptor } from 'src/common/interceptors/add-header.interceptor';
+import { BodyCreateTaskInterceptor } from 'src/common/interceptors/body-create-task.interceptor';
 
 @Controller('tasks')
 export class TasksController {
-    constructor(private readonly taskService: TasksService) { }
+    constructor(private readonly taskService: TasksService) {}
     
     @Get()
-    getTasks() {
-        return this.taskService.listAllTasks()
+    @UseInterceptors(LoggerInterceptor)
+    @UseInterceptors(AddHeaderInterceptor)
+    getTasks(@Query() paginationDto: PaginationDto) {
+        return this.taskService.listAllTasks(paginationDto)
     }
 
     @Get('/busca')
-    findManyTasks(@Query() queryParam: any) {
-        return this.taskService.listAllTasks()
+    findManyTasks(@Query() paginationDto: PaginationDto) {
+        return this.taskService.listAllTasks(paginationDto)
     }
 
     @Get(':id')
@@ -33,6 +41,8 @@ export class TasksController {
     }
 
     @Post()
+    @UseInterceptors(LoggerInterceptor)
+    @UseInterceptors(BodyCreateTaskInterceptor)
     createTask(@Body() createTaskDto: CreateTaskDto) {
         return this.taskService.create(createTaskDto)
     }
