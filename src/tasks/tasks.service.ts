@@ -9,6 +9,7 @@ import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
 import { DatabaseService } from 'src/database/database.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { resolvePaginationDto } from 'src/common/pagination/resolvePagination';
+import { error } from 'console';
 
 @Injectable()
 export class TasksService {
@@ -38,12 +39,16 @@ export class TasksService {
 			const task = await this.databaseService.task.findUnique({
 				where: { id }
 			});
-			return task;
+			if(task) {
+				return task;
+			}
+			throw new HttpException('Tarefa não encontrada', HttpStatus.NOT_FOUND)
 		} catch (err) {
+			if (err instanceof HttpException) throw err
 			throw new HttpException(
 				"erro ao buscar tarefa",
 				HttpStatus.INTERNAL_SERVER_ERROR
-			) 
+			);
 		}
     }
 
