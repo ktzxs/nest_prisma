@@ -8,7 +8,7 @@ import {
     Put,
     Delete,
     ParseIntPipe,
-    Logger
+    UseGuards
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
@@ -18,8 +18,9 @@ import { UseInterceptors } from '@nestjs/common';
 import { LoggerInterceptor } from 'src/common/interceptors/logger.interceptor';
 import { AddHeaderInterceptor } from 'src/common/interceptors/add-header.interceptor';
 import { BodyCreateTaskInterceptor } from 'src/common/interceptors/body-create-task.interceptor';
-
+import { AuthAdminGuard } from 'src/common/guards/admin.guard';
 @Controller('tasks')
+@UseGuards(AuthAdminGuard)
 export class TasksController {
     constructor(private readonly taskService: TasksService) {}
     
