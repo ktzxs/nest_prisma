@@ -4,18 +4,24 @@ import { AuthService } from './auth.service';
 import { BcryptService } from './hash/bcrypt.service';
 import { HashingServiceProtocol } from './hash/hashing.service';
 import { DatabaseModule } from 'src/database/database.module';
-
+import jwtConfig from './config/jwt.config';
+import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 @Global()
-@Module({
-  imports: [DatabaseModule],
-  controllers: [AuthController],
-    providers: [
-      AuthService,
-      {
-        provide: HashingServiceProtocol,
-        useClass: BcryptService,
-      }
+  @Module({
+    imports: [
+      DatabaseModule,
+      ConfigModule.forFeature(jwtConfig),
+      JwtModule.registerAsync(jwtConfig.asProvider())
     ],
-    exports: [HashingServiceProtocol]
-})
+    controllers: [AuthController],
+      providers: [
+        AuthService,
+        {
+          provide: HashingServiceProtocol,
+          useClass: BcryptService,
+        }
+      ],
+      exports: [HashingServiceProtocol]
+  })
 export class AuthModule {}

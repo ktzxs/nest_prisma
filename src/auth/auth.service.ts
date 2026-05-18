@@ -1,38 +1,44 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable, HttpStatus, HttpException, Inject } from '@nestjs/common';
 import { SingInDto } from './dto/singin.dto';
 import { DatabaseService } from 'src/database/database.service';
 import { HashingServiceProtocol } from './hash/hashing.service';
+import jwtConfig from './config/jwt.config';
+import { ConfigType } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly hashingService: HashingServiceProtocol,
-  ) {}
+	constructor(
+		private readonly databaseService: DatabaseService,
+		private readonly hashingService: HashingServiceProtocol,
 
-  async authenticate(singInDto: SingInDto) {
-    const user = await this.databaseService.user.findUnique({
-      where: { email: singInDto.email },
-    });
+		@Inject(jwtConfig.KEY)
+		private readonly jwtConfigService: ConfigType<typeof jwtConfig>,
+	) { }
 
-    if (!user) {
-      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-    }
+	async authenticate(signInDto: SingInDto) {
+		const user = await this.databaseService.user.findUnique({
+			where: { email: signInDto.email },
+		});
 
-    const isPasswordValid = await this.hashingService.compare(
-      singInDto.password,
-      user.passwordHash,
-    );
+		if (!user) {
+			throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+		}
 
-    if (!isPasswordValid) {
-      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-    }
+		const isPasswordValid = await this.hashingService.compare(
+			signInDto.password,
+			user.passwordHash
+		)
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      message: 'Authenticate succeful',
-    };
-  }
+		if (!isPasswordValid) {
+			throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+		}
+
+		return {
+			id: user.id,
+			email: user.email,
+			name: user.name,
+			message: 'Authentication successful'
+		}
+	}
 }

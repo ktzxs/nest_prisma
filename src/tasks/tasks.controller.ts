@@ -27,6 +27,7 @@ export class TasksController {
     @Get()
     @UseInterceptors(LoggerInterceptor)
     @UseInterceptors(AddHeaderInterceptor)
+    //@UseGuards(AuthAdminGuard)
     getTasks(@Query() paginationDto: PaginationDto) {
         return this.taskService.listAllTasks(paginationDto)
     }
