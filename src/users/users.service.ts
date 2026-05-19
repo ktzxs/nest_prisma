@@ -1,7 +1,12 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+	HttpException,
+	HttpStatus,
+	Injectable,
+	Body,
+} from '@nestjs/common';
+import { DatabaseService } from 'src/database/database.service';
 import { CreateUserDto } from './dto/create.user.dto';
 import { UpdateUserDto } from './dto/update.user.dto';
-import { DatabaseService } from 'src/database/database.service';
 import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
 
 @Injectable()
@@ -12,40 +17,37 @@ export class UsersService {
 	) { }
 
 	async findOne(id: number) {
-		try {
-			const user = await this.databaseService.user.findUnique({
-				where: { id },
-				select: {
-					id: true,
-					email: true,
-					name: true,
-					tasks: true
-				}
-			});
+		const user = await this.databaseService.user.findUnique({
+			where: { id },
+			select: {
+				id: true,
+				name: true,
+				email: true,
+				tasks: true
+			}
+		});
 
-			if (user) return user;
+		if (user) return user;
 
-			throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
-		} catch (error) {
-			throw new HttpException('Failed to find user', HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
 	}
 
-	async create(createUserDto: CreateUserDto) {
+	async create(@Body() createUserDto: CreateUserDto) {
 		try {
 			const passwordHash = await this.hashingService.hash(createUserDto.password);
 			const newUser = await this.databaseService.user.create({
 				data: {
 					name: createUserDto.name,
 					email: createUserDto.email,
-					passwordHash: passwordHash,
+					passwordHash: passwordHash
 				},
 				select: {
 					id: true,
-					email: true,
 					name: true,
+					email: true,
 				}
 			});
+
 			return newUser;
 		} catch (error) {
 			throw new HttpException('Failed to create user', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -54,6 +56,7 @@ export class UsersService {
 
 	async update(id: number, updateUserDto: UpdateUserDto) {
 		try {
+			let passwordHash = ""
 			const findUser = await this.databaseService.user.findUnique({
 				where: { id }
 			});
@@ -61,20 +64,19 @@ export class UsersService {
 			if (!findUser) {
 				throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
 			}
-
-			let passwordHash = await this.cryptoPassword(updateUserDto.password, findUser.passwordHash)
-			let name = this.ajusteName(updateUserDto.name, findUser.name)
-
+			if (updateUserDto.password) {
+				passwordHash = await this.hashingService.hash(updateUserDto.password);
+			}
 			const updatedUser = await this.databaseService.user.update({
 				where: { id },
 				data: {
-					name,
-					passwordHash
+					name: updateUserDto.name ? updateUserDto.name : findUser.name,
+					passwordHash: updateUserDto.password ? passwordHash : findUser.passwordHash
 				},
 				select: {
 					id: true,
-					email: true,
 					name: true,
+					email: true
 				}
 			});
 
@@ -102,13 +104,5 @@ export class UsersService {
 		} catch (error) {
 			throw new HttpException('Failed to delete user', HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-	}
-
-	async cryptoPassword(password: string | undefined, passwordHash): Promise<string> {
-		return password ? await this.hashingService.hash(password) : passwordHash
-	}
-
-	ajusteName(name: string | undefined, oldName): string {
-		return name ? name : oldName
 	}
 }

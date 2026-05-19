@@ -3,7 +3,7 @@ import { SingInDto } from './dto/singin.dto';
 import { DatabaseService } from 'src/database/database.service';
 import { HashingServiceProtocol } from './hash/hashing.service';
 import jwtConfig from './config/jwt.config';
-import { ConfigType } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
