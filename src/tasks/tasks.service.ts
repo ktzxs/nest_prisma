@@ -4,11 +4,11 @@ import {
 		Injectable, 
 		NotFoundException
 	} from '@nestjs/common';
-import { UpdateTaskDto } from 'src/tasks/dto/update.task.dto';
-import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
-import { DatabaseService } from 'src/database/database.service';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { resolvePaginationDto } from 'src/common/pagination/resolvePagination';
+import { UpdateTaskDto } from './dto/update.task.dto';
+import { CreateTaskDto } from './dto/create.task.dto';
+import { DatabaseService } from '../database/database.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { resolvePaginationDto } from '../common/pagination/resolvePagination';
 import { error } from 'console';
 
 @Injectable()
@@ -86,6 +86,7 @@ export class TasksService {
 			});
 			return updateTask;
 		} catch (err) {
+			if ( err instanceof HttpException) throw err
 			throw new HttpException(
 				"erro ao atualizar tarefa",
 				HttpStatus.INTERNAL_SERVER_ERROR

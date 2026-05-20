@@ -1,44 +1,71 @@
-import { Injectable, HttpStatus, HttpException, Inject } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { SingInDto } from './dto/singin.dto';
-import { DatabaseService } from 'src/database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { HashingServiceProtocol } from './hash/hashing.service';
 import jwtConfig from './config/jwt.config';
-import type { ConfigType } from '@nestjs/config';
+import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly databaseService: DatabaseService,
+		private readonly DatabaseService: DatabaseService,
 		private readonly hashingService: HashingServiceProtocol,
 
 		@Inject(jwtConfig.KEY)
-		private readonly jwtConfigService: ConfigType<typeof jwtConfig>,
-	) { }
+		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+		private readonly jwtService: JwtService
+	) {}
 
-	async authenticate(signInDto: SingInDto) {
-		const user = await this.databaseService.user.findUnique({
-			where: { email: signInDto.email },
+	async authenticate(SignInDto: SingInDto) {
+		const user = await this.DatabaseService.user.findUnique({
+			where: {
+				email: SignInDto.email
+			}
 		});
 
 		if (!user) {
 			throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
 		}
 
-		const isPasswordValid = await this.hashingService.compare(
-			signInDto.password,
+		const passwordIsValid = await this.hashingService.compare(
+			SignInDto.password,
 			user.passwordHash
-		)
+		);
 
-		if (!isPasswordValid) {
+		if (!passwordIsValid) {
 			throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
 		}
 
+		if (!this.jwtConfiguration.secret) {
+			throw new HttpException('JWT secret is not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		const tokenTtl = this.jwtConfiguration.ttl;
+		const expiresIn = tokenTtl
+			? /^\d+$/.test(tokenTtl)
+				? Number(tokenTtl)
+				: tokenTtl
+			: undefined;
+
+		const token = await this.jwtService.signAsync(
+			{
+				sub: user.id,
+				email: user.email,
+				username: user.name
+			},
+			{
+			secret: this.jwtConfiguration.secret,
+			expiresIn: expiresIn as any,
+			audience: this.jwtConfiguration.audience,
+			issuer: this.jwtConfiguration.issuer,
+			}
+		);
 		return {
 			id: user.id,
-			email: user.email,
 			name: user.name,
-			message: 'Authentication successful'
-		}
+			email: user.email,
+			token
+		};
 	}
 }

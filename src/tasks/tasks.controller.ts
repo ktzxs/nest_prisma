@@ -11,14 +11,14 @@ import {
     UseGuards
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto } from 'src/tasks/dto/create.task.dto';
-import { UpdateTaskDto } from 'src/tasks/dto/update.task.dto'
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CreateTaskDto } from './dto/create.task.dto';
+import { UpdateTaskDto } from './dto/update.task.dto'
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { UseInterceptors } from '@nestjs/common';
-import { LoggerInterceptor } from 'src/common/interceptors/logger.interceptor';
-import { AddHeaderInterceptor } from 'src/common/interceptors/add-header.interceptor';
-import { BodyCreateTaskInterceptor } from 'src/common/interceptors/body-create-task.interceptor';
-import { AuthAdminGuard } from 'src/common/guards/admin.guard';
+import { LoggerInterceptor } from '../common/interceptors/logger.interceptor';
+import { AddHeaderInterceptor } from '../common/interceptors/add-header.interceptor';
+import { BodyCreateTaskInterceptor } from '../common/interceptors/body-create-task.interceptor';
+import { AuthAdminGuard } from '../common/guards/admin.guard';
 @Controller('tasks')
 @UseGuards(AuthAdminGuard)
 export class TasksController {
