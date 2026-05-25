@@ -2,9 +2,9 @@ import {
 	HttpException,
 	HttpStatus,
 	Injectable,
-	Body,
 	Post,
-	Put,
+	Body,
+	Put
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateUserDto } from './dto/create.user.dto';
@@ -35,7 +35,7 @@ export class UsersService {
 		throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
 	}
 
-	async create( @Body() createUserDto: CreateUserDto) {
+	async create(@Body() createUserDto: CreateUserDto) {
 		try {
 			const passwordHash = await this.hashingService.hash(createUserDto.password);
 			const newUser = await this.databaseService.user.create({
@@ -53,15 +53,12 @@ export class UsersService {
 
 			return newUser;
 		} catch (error) {
+			if (error instanceof HttpException) throw error;
 			throw new HttpException('Failed to create user', HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	async update(
-		id: number, 
-		updateUserDto: UpdateUserDto,
-		tokenPayLoad: PayLoadTokenDto
-	) {
+	async update(id: number, updateUserDto: UpdateUserDto, tokenPayload: PayLoadTokenDto) {
 		try {
 			let passwordHash = ""
 			const findUser = await this.databaseService.user.findUnique({
@@ -70,6 +67,10 @@ export class UsersService {
 
 			if (!findUser) {
 				throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+			}
+
+			if(findUser.id !== tokenPayload.sub) {
+				throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
 			}
 
 			if (updateUserDto.password) {
@@ -90,12 +91,12 @@ export class UsersService {
 
 			return updatedUser;
 		} catch (error) {
-			if (error instanceof HttpException) throw error 
+			if (error instanceof HttpException) throw error;
 			throw new HttpException('Failed to update user', HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	async delete(id: number) {
+	async delete(id: number, tokenPayload: PayLoadTokenDto) {
 		try {
 			const findUser = await this.databaseService.user.findUnique({
 				where: { id }
@@ -105,12 +106,17 @@ export class UsersService {
 				throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
 			}
 
+			if(findUser.id !== tokenPayload.sub) {
+				throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+			}
+
 			await this.databaseService.user.delete({
 				where: { id }
 			});
 
 			return { message: 'User deleted successfully' };
 		} catch (error) {
+			if (error instanceof HttpException) throw error;
 			throw new HttpException('Failed to delete user', HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

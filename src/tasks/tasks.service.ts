@@ -9,7 +9,7 @@ import { CreateTaskDto } from './dto/create.task.dto';
 import { DatabaseService } from '../database/database.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { resolvePaginationDto } from '../common/pagination/resolvePagination';
-import { error } from 'console';
+import { PayLoadTokenDto } from '../auth/dto/payload-token.dto';
 
 @Injectable()
 export class TasksService {
@@ -52,13 +52,13 @@ export class TasksService {
 		}
     }
 
-    async create(createTaskDto: CreateTaskDto) {
+    async create(createTaskDto: CreateTaskDto, tokenPayLoad: PayLoadTokenDto) {
         try {
 			const newTask = await this.databaseService.task.create({
 				data: {
 					name: createTaskDto.name,
 					description: createTaskDto.description,
-					userId: createTaskDto.userId,
+					userId: tokenPayLoad.sub,
 					completed: false
 				}
 			});
@@ -71,13 +71,19 @@ export class TasksService {
 		}
     }
 
-    async update(id: number, updateTaskDto: UpdateTaskDto) {
+    async update(id: number, updateTaskDto: UpdateTaskDto, tokenPayLoad: PayLoadTokenDto) {
 		try {
 			const findTask = await this.databaseService.task.findUnique({
 				where: { id }
 			});
 			if(!findTask) {
 				throw new NotFoundException('Tarefa não encontrada')
+			}
+
+			if(findTask.userId !== tokenPayLoad.sub) {
+				throw new HttpException(
+					"You are not permission for update task", HttpStatus.UNAUTHORIZED
+				)
 			}
 
 			const updateTask = await this.databaseService.task.update({
@@ -94,14 +100,22 @@ export class TasksService {
 		}
     }
 
-    async delete(id: number) {
+    async delete(id: number, TokenPayLoad: PayLoadTokenDto) {
       try {
 			const findTask = await this.databaseService.task.findUnique({
 				where: { id }
 			});
+
 			if(!findTask) {
 				throw new NotFoundException('Tarefa não encontrada')
 			}
+
+				if(findTask.userId !== TokenPayLoad.sub) {
+				throw new HttpException(
+					"You are not permission delete for task", HttpStatus.UNAUTHORIZED
+				)
+			}
+
 			await this.databaseService.task.delete({
 				where: { id }
 			});

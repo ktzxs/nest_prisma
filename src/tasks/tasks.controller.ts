@@ -19,6 +19,9 @@ import { LoggerInterceptor } from '../common/interceptors/logger.interceptor';
 import { AddHeaderInterceptor } from '../common/interceptors/add-header.interceptor';
 import { BodyCreateTaskInterceptor } from '../common/interceptors/body-create-task.interceptor';
 import { AuthAdminGuard } from '../common/guards/admin.guard';
+import { AuthTokenGuard } from '../auth/guard/auth-token.guard';
+import { PayLoadTokenDto } from '../auth/dto/payload-token.dto';
+import { TokenPayLoadParam } from '../auth/param/token-payload.param';
 @Controller('tasks')
 @UseGuards(AuthAdminGuard)
 export class TasksController {
@@ -27,7 +30,6 @@ export class TasksController {
     @Get()
     @UseInterceptors(LoggerInterceptor)
     @UseInterceptors(AddHeaderInterceptor)
-    //@UseGuards(AuthAdminGuard)
     getTasks(@Query() paginationDto: PaginationDto) {
         return this.taskService.listAllTasks(paginationDto)
     }
@@ -42,20 +44,32 @@ export class TasksController {
         return this.taskService.findOneTaks(id)
     }
 
+    @UseGuards(AuthTokenGuard)
     @Post()
     @UseInterceptors(LoggerInterceptor)
     @UseInterceptors(BodyCreateTaskInterceptor)
-    createTask(@Body() createTaskDto: CreateTaskDto) {
-        return this.taskService.create(createTaskDto)
+    createTask(
+        @Body() createTaskDto: CreateTaskDto,
+        @TokenPayLoadParam() TokenPayLoadParam: PayLoadTokenDto
+    ) {
+        return this.taskService.create(createTaskDto, TokenPayLoadParam)
     }
 
-    @Put(':id') //Patch
-    updateTask(@Param('id', ParseIntPipe) id: number, @Body() updateTask: UpdateTaskDto) {
-        return this.taskService.update(id, updateTask)
+    @UseGuards(AuthTokenGuard)
+    @Put(':id') 
+    updateTask(
+        @Param('id', ParseIntPipe) id: number, 
+        @Body() updateTask: UpdateTaskDto,
+        @TokenPayLoadParam() TokenPayLoadParam: PayLoadTokenDto
+    ) {
+        return this.taskService.update(id, updateTask, TokenPayLoadParam)
     }
 
     @Delete(':id')
-    deleteTask(@Param('id') id: number) {
-        return this.taskService.delete(id)
+    deleteTask(
+        @Param('id') id: number,
+        @TokenPayLoadParam() TokenPayLoadParam: PayLoadTokenDto
+    ) {
+        return this.taskService.delete(id, TokenPayLoadParam)
     }
 }
