@@ -11,12 +11,18 @@ import { UsersModule } from '../users/users.module';
 import { LoggerMiddleware } from '../common/middlewares/logger.middleware';
 import { AuthModule } from '../auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'node:path';
 
 @Module({
   imports: [
     TasksModule, 
     UsersModule, 
-    AuthModule
+    AuthModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..','..', 'public', 'files'),
+      serveRoot: '/files'
+    })
   ],
   controllers: [AppController],
   providers: [AppService],
