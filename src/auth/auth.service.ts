@@ -1,39 +1,43 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { SingInDto } from './dto/singin.dto';
-import { DatabaseService } from '../database/database.service';
-import { HashingServiceProtocol } from './hash/hashing.service';
-import jwtConfig from './config/jwt.config';
-import { ConfigType } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import {
+	Injectable,
+	HttpStatus,
+	HttpException,
+	Inject
+} from '@nestjs/common'
+import { SingInDto } from './dto/singin.dto'
+import { DatabaseService } from '../database/database.service'
+import { HashingServiceProtocol } from './hash/hashing.service'
+import jwtConfig from './config/jwt.config'
+import { ConfigType } from '@nestjs/config'
+import { JwtService } from '@nestjs/jwt'
+import { StringValue } from 'ms'
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly DatabaseService: DatabaseService,
+		private readonly databaseService: DatabaseService,
 		private readonly hashingService: HashingServiceProtocol,
 
 		@Inject(jwtConfig.KEY)
 		private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
 		private readonly jwtService: JwtService
-	) {}
+	) { }
 
-	async authenticate(SignInDto: SingInDto) {
-		const user = await this.DatabaseService.user.findUnique({
-			where: {
-				email: SignInDto.email
-			}
+	async authenticate(signInDto: SingInDto) {
+		const user = await this.databaseService.user.findUnique({
+			where: { email: signInDto.email },
 		});
 
 		if (!user) {
 			throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
 		}
 
-		const passwordIsValid = await this.hashingService.compare(
-			SignInDto.password,
+		const isPasswordValid = await this.hashingService.compare(
+			signInDto.password,
 			user.passwordHash
-		);
+		)
 
-		if (!passwordIsValid) {
+		if (!isPasswordValid) {
 			throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
 		}
 
@@ -41,32 +45,33 @@ export class AuthService {
 			throw new HttpException('JWT secret is not configured', HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		const tokenTtl = this.jwtConfiguration.ttl;
+		const tokenTtl = this.jwtConfiguration.ttl
 		const expiresIn = tokenTtl
 			? /^\d+$/.test(tokenTtl)
 				? Number(tokenTtl)
-				: tokenTtl
-			: undefined;
+				: (tokenTtl as StringValue)
+			: undefined
 
 		const token = await this.jwtService.signAsync(
 			{
 				sub: user.id,
 				email: user.email,
-				username: user.name
+				username: user.name,
 			},
 			{
-			secret: this.jwtConfiguration.secret,
-			expiresIn: expiresIn as any,
-			audience: this.jwtConfiguration.audience,
-			issuer: this.jwtConfiguration.issuer,
+				secret: this.jwtConfiguration.secret,
+				expiresIn,
+				audience: this.jwtConfiguration.audience,
+				issuer: this.jwtConfiguration.issuer,
 			}
-		);
+		)
+
 		return {
 			id: user.id,
-			name: user.name,
 			email: user.email,
+			name: user.name,
 			avatar: user.avatar,
 			token
-		};
+		}
 	}
 }
