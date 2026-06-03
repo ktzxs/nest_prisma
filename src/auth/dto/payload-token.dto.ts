@@ -4,5 +4,5 @@ export class PayLoadTokenDto {
   iat: number;
   exp: number;
   aud: string;
-  iss: number;   
+  iss: string;   
 }

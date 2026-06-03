@@ -83,7 +83,7 @@ export class UsersController {
 		return this.usersService.uploadAvatarImage(tokenPayload, file);
 	}
 
-		@UseGuards(AuthTokenGuard)
+	@UseGuards(AuthTokenGuard)
 	@UseInterceptors(FilesInterceptor('file'))
 	@Post('uploads')
 	async uploadFiles(
